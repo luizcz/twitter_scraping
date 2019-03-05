@@ -5,15 +5,23 @@ from time import sleep
 import json
 import datetime
 
+#start = datetime.datetime(2016,10,1) #year, month, day
+
+try:
+    f = open('dia', 'r')
+    dados = f.read()
+    start = datetime.datetime.strptime(dados, '%m/%d/%Y')
+    print(start)
+except FileNotFoundError:
+    start = datetime.datetime(2016,10,1)
 
 # edit these three variables
-user = 'realdonaldtrump'
-start = datetime.datetime(2010, 1, 1)  # year, month, day
-end = datetime.datetime(2016, 12, 7)  # year, month, day
-
+user = 'venezuelanos'
+end = datetime.datetime(2019, 3, 4)  # year, month, day
+print(start)
 # only edit these if you're having problems
 delay = 1  # time to wait on each page load before reading the page
-driver = webdriver.Safari()  # options are Chrome() Firefox() Safari()
+driver = webdriver.Firefox()  # options are Chrome() Firefox() Safari()
 
 
 # don't mess with this stuff
@@ -24,6 +32,12 @@ tweet_selector = 'li.js-stream-item'
 user = user.lower()
 ids = []
 
+def escrever_dia(date):
+    dia = date.strftime('%m/%d/%Y')
+    arquivo = open('dia', 'w+')
+    arquivo.write(dia)
+    arquivo.close()
+
 def format_day(date):
     day = '0' + str(date.day) if len(str(date.day)) == 1 else str(date.day)
     month = '0' + str(date.month) if len(str(date.month)) == 1 else str(date.month)
@@ -31,7 +45,7 @@ def format_day(date):
     return '-'.join([year, month, day])
 
 def form_url(since, until):
-    p1 = 'https://twitter.com/search?f=tweets&vertical=default&q=from%3A'
+    p1 = 'https://twitter.com/search?f=tweets&vertical=default&q='
     p2 =  user + '%20since%3A' + since + '%20until%3A' + until + 'include%3Aretweets&src=typd'
     return p1 + p2
 
@@ -70,24 +84,25 @@ for day in range(days):
     except NoSuchElementException:
         print('no tweets on this day')
 
+    try:
+        with open(twitter_ids_filename) as f:
+            all_ids = ids + json.load(f)
+            data_to_write = list(set(all_ids))
+            print('tweets found on this scrape: ', len(ids))
+            print('total tweet count: ', len(data_to_write))
+    except FileNotFoundError:
+        with open(twitter_ids_filename, 'w') as f:
+            all_ids = ids
+            data_to_write = list(set(all_ids))
+            print('tweets found on this scrape: ', len(ids))
+            print('total tweet count: ', len(data_to_write))
+
+    with open(twitter_ids_filename, 'w') as outfile:
+        json.dump(data_to_write, outfile)
+    ids = []
     start = increment_day(start, 1)
+    escrever_dia(start)
 
-
-try:
-    with open(twitter_ids_filename) as f:
-        all_ids = ids + json.load(f)
-        data_to_write = list(set(all_ids))
-        print('tweets found on this scrape: ', len(ids))
-        print('total tweet count: ', len(data_to_write))
-except FileNotFoundError:
-    with open(twitter_ids_filename, 'w') as f:
-        all_ids = ids
-        data_to_write = list(set(all_ids))
-        print('tweets found on this scrape: ', len(ids))
-        print('total tweet count: ', len(data_to_write))
-
-with open(twitter_ids_filename, 'w') as outfile:
-    json.dump(data_to_write, outfile)
 
 print('all done here')
 driver.close()
